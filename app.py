@@ -119,5 +119,6 @@ def update_dashboard(n_intervals):
     return rev_str, pending_str, count_str, fig_bar, fig_pie
 
 if __name__ == '__main__':
+    port = int(os.environ.get("PORT", 10000))
     app.run_server(host='0.0.0.0', port=8050, debug=True)
     
