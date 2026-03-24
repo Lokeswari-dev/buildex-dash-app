@@ -57,7 +57,7 @@ app.layout = dbc.Container([
 def update_dashboard(n_intervals):
     # Load data dynamically
     try:
-        df = pd.read_csv('buildex_data.csv')
+        df = pd.read_csv('https://docs.google.com/spreadsheets/d/e/2PACX-1vQjA3P7sFrty1FPvJSeEJTN-bKvmYfdkZT2Wj4EULb_Q7nUC4NpjBMiTgqAFTmEZmVljPE2Ze7IwX4s/pub?gid=0&single=true&output=csvS')
     except Exception:
         # Fallback empty state if file is unavailable
         df = pd.DataFrame()
@@ -119,4 +119,5 @@ def update_dashboard(n_intervals):
     return rev_str, pending_str, count_str, fig_bar, fig_pie
 
 if __name__ == '__main__':
-    app.run_server(debug=True, port=8050)
+    app.run_server(host='0.0.0.0', port=8050, debug=True)
+    
