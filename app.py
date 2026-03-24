@@ -6,7 +6,7 @@ import plotly.express as px
 
 # Initialize app with FLATLY theme
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.FLATLY])
-
+server = app.server
 # Create Scorecard Function
 def create_scorecard(title, value_id, text_color="primary"):
     return dbc.Card(
