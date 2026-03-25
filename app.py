@@ -1,5 +1,5 @@
 import dash
-from dash import dcc, html, Input, Output, dash_table
+from dash import dcc, html, Input, Output, State, dash_table
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.express as px
@@ -30,17 +30,12 @@ def create_scorecard(title, value_id, text_color="primary"):
         className="shadow-sm mb-4"
     )
 
-sidebar = html.Div(
-    [
-        html.H3("Filters", className="display-6"),
-        html.Hr(),
-        html.P(
-            "Filter the dashboard data:", className="lead"
-        ),
+def make_filter_controls(suffix):
+    return html.Div([
         html.Div([
             html.Label("Location", className="fw-bold"),
             dcc.Dropdown(
-                id='location-filter',
+                id=f'location-filter-{suffix}',
                 options=[{'label': i, 'value': i} for i in locations],
                 value=[],
                 multi=True,
@@ -50,20 +45,46 @@ sidebar = html.Div(
         html.Div([
             html.Label("Material", className="fw-bold"),
             dcc.Dropdown(
-                id='material-filter',
+                id=f'material-filter-{suffix}',
                 options=[{'label': i, 'value': i} for i in materials],
                 value=[],
                 multi=True,
                 placeholder="Select Material(s)..."
             ),
         ], className="mb-4")
+    ])
+
+sidebar_desktop = html.Div(
+    [
+        html.H3("Filters", className="display-6"),
+        html.Hr(),
+        html.P("Filter the dashboard data:", className="lead"),
+        make_filter_controls("desktop")
     ],
-    className="bg-light p-4 shadow-sm",
+    className="bg-light p-4 shadow-sm d-none d-md-block",
     style={"height": "100%", "min-height": "100vh", "border-radius": "5px"}
+)
+
+sidebar_mobile = html.Div(
+    [
+        dbc.Button("Toggle Filters", id="open-offcanvas", color="primary", className="d-md-none w-100 mb-4"),
+        dbc.Offcanvas(
+            html.Div([
+                html.P("Filter the dashboard data:", className="lead"),
+                make_filter_controls("mobile")
+            ]),
+            id="offcanvas",
+            title="Filters",
+            is_open=False,
+            placement="start"
+        ),
+    ],
+    className="d-md-none"
 )
 
 content = html.Div(
     [
+        sidebar_mobile,
         dcc.Interval(id='interval-component', interval=5000, n_intervals=0),
         
         html.Div([
@@ -116,10 +137,48 @@ content = html.Div(
 
 app.layout = dbc.Container([
     dbc.Row([
-        dbc.Col(sidebar, md=3),
-        dbc.Col(content, md=9)
+        dbc.Col(sidebar_desktop, md=3, className="d-none d-md-block"),
+        dbc.Col(content, xs=12, md=9)
     ])
 ], fluid=True, className="p-3")
+
+@app.callback(
+    Output("offcanvas", "is_open"),
+    Input("open-offcanvas", "n_clicks"),
+    [State("offcanvas", "is_open")],
+)
+def toggle_offcanvas(n1, is_open):
+    if n1:
+        return not is_open
+    return is_open
+
+@app.callback(
+    [Output('location-filter-desktop', 'value'),
+     Output('location-filter-mobile', 'value')],
+    [Input('location-filter-desktop', 'value'),
+     Input('location-filter-mobile', 'value')]
+)
+def sync_location(d_val, m_val):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return dash.no_update, dash.no_update
+    trigger = ctx.triggered[0]['prop_id']
+    val = m_val if 'mobile' in trigger else d_val
+    return val, val
+
+@app.callback(
+    [Output('material-filter-desktop', 'value'),
+     Output('material-filter-mobile', 'value')],
+    [Input('material-filter-desktop', 'value'),
+     Input('material-filter-mobile', 'value')]
+)
+def sync_material(d_val, m_val):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        return dash.no_update, dash.no_update
+    trigger = ctx.triggered[0]['prop_id']
+    val = m_val if 'mobile' in trigger else d_val
+    return val, val
 
 @app.callback(
     [Output('total-revenue-kpi', 'children'),
@@ -130,8 +189,8 @@ app.layout = dbc.Container([
      Output('raw-data-table', 'data'),
      Output('raw-data-table', 'columns')],
     [Input('interval-component', 'n_intervals'),
-     Input('location-filter', 'value'),
-     Input('material-filter', 'value')]
+     Input('location-filter-desktop', 'value'),
+     Input('material-filter-desktop', 'value')]
 )
 def update_dashboard(n_intervals, selected_locations, selected_materials):
     try:
